@@ -39,7 +39,7 @@ def tokenization(examples, tokenizer):
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 
-def run(dataset):
+def run(dataset, num_train_epochs):
     """Pipeline for loading pre-trained Code-T5 model and tokenizer, modifying dataset, and fine-tuning"""
     
     print("Loading model and tokenizer")
@@ -60,15 +60,45 @@ def run(dataset):
     print(dataset)
 
     print("Tokenizing dataset")
-    dataset = dataset.map(tokenization, fn_kwargs={"tokenizer": tokenizer})
-    print(dataset)
+    tokenized_dataset = dataset.map(tokenization, fn_kwargs={"tokenizer": tokenizer})
+    print(tokenized_dataset)
+
+    print("Training CodeT5 model")
+    training_args = TrainingArguments(
+            output_dir = "./codet5-finetuned-if-condition",
+            eval_strategy = "epoch",
+            save_strategy = "epoch", # saving checkpoint after each epoch
+            logging_dir = "./logs",
+            learning_rate = 5e-5,
+            per_device_train_batch_size = 2,
+            per_device_eval_batch_size = 2,
+            num_train_epochs = num_train_epochs,
+            weight_decay = 0.01,
+            load_best_model_at_end = True,
+            metric_for_best_model = "eval_loss",
+            save_total_limit = 2,
+            logging_steps = 100,
+            push_to_hub = False,
+    )
+
+    trainer = Trainer(
+            model = model,
+            args = training_args,
+            train_dataset = tokenized_dataset["train"],
+            eval_dataset = tokenized_dataset["validation"],
+            tokenizer = tokenizer,
+            callbacks = [EarlyStoppingCallback(early_stopping_patience=2)]
+    )
+
+    trainer.train()
+    print("Training complete!")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_file", type = str, help = "File containing Python functions for training")
     parser.add_argument("--validation_file", type = str, help = "File containing Python functions for validation")
     parser.add_argument("--test_file", type = str, help = "File containing Python functions for testing")
-
+    parser.add_argument("--num_train_epochs", type = int, default = 3, help = "Number of training epochs")
     args = parser.parse_args()
 
     if not os.path.isfile(args.train_file) or not os.path.isfile(args.validation_file) or not os.path.isfile(args.test_file):
@@ -79,4 +109,4 @@ if __name__ == '__main__':
     dataset = load_dataset("csv", data_files = {"train": args.train_file, "validation": args.validation_file, "test": args.test_file})
 
     print(dataset)
-    run(dataset)
+    run(dataset, args.num_train_epochs)
