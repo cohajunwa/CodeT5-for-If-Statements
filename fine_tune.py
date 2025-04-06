@@ -28,12 +28,20 @@ def mask(example):
 
   return example
 
-def tokenization(dataset):
+def tokenization(examples, tokenizer):
     """Tokenize dataset using pre-trained tokenizer"""
-    pass
+    
+    inputs = examples["masked_method"]
+    targets = examples["target_block"]
+    model_inputs = tokenizer(inputs, max_length=256, truncation = True, padding="max_length")
+    labels = tokenizer(targets, max_length=256, truncation=True, padding="max_length")
+
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
 
 def run(dataset):
     """Pipeline for loading pre-trained Code-T5 model and tokenizer, modifying dataset, and fine-tuning"""
+    
     print("Loading model and tokenizer")
 
     model_checkpoint = "Salesforce/codet5-small"
@@ -49,6 +57,10 @@ def run(dataset):
 
     print("Modifying dataset by flattening methods and masking if conditions")    
     dataset = dataset.map(flatten).map(mask)
+    print(dataset)
+
+    print("Tokenizing dataset")
+    dataset = dataset.map(tokenization, fn_kwargs={"tokenizer": tokenizer})
     print(dataset)
 
 if __name__ == '__main__':
