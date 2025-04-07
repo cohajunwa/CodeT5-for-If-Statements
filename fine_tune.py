@@ -14,6 +14,8 @@ from datasets import load_dataset
 IF_STATEMENT_PATTERN = r"if\s+.*?:"
 
 def flatten(example):
+  """Flatten cleaned Python function and insert tab special character"""
+
   method = example['cleaned_method']
 
   flattened_method = method.replace('    ', '<TAB>').replace('\n', '')
@@ -21,6 +23,8 @@ def flatten(example):
   return example
 
 def mask(example):
+  """Apply if-statement mask to cleaned Python function"""
+
   masked_method = re.sub(if_statement_pattern, "<IF-STMT>:",
                          example['cleaned_method'], 1)
   example['masked_method'] = masked_method
@@ -97,7 +101,7 @@ def run(dataset, num_train_epochs, save_path):
       tokenizer.save_pretrained(save_path)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--train_file", type = str, help = "File containing Python functions for training")
     parser.add_argument("--validation_file", type = str, help = "File containing Python functions for validation")
     parser.add_argument("--test_file", type = str, help = "File containing Python functions for testing")
