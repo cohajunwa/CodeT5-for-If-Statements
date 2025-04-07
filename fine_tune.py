@@ -11,6 +11,7 @@ from datasets import DatasetDict
 from datasets import Dataset
 from datasets import load_dataset
 
+IF_STATEMENT_PATTERN = r"if\s+.*?:"
 
 def flatten(example):
   method = example['cleaned_method']
@@ -20,11 +21,9 @@ def flatten(example):
   return example
 
 def mask(example):
-  if_statement_pattern = r"if\s+.*"
-
-  masked_method = re.sub(if_statement_pattern, "<IF-STMT>",
+   masked_method = re.sub(if_statement_pattern, "<IF-STMT>:",
                          example['cleaned_method'], 1)
-  example['masked_method'] = masked_method
+   example['masked_method'] = masked_method
 
   return example
 

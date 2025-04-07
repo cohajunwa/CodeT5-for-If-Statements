@@ -10,6 +10,8 @@ from pygments.lexers.python import PythonLexer
 from pygments.lexers import get_lexer_by_name
 from pygments.token import Token
 
+IF_STATEMENT_PATTERN = r"if\s+.*?:"
+
 def extract_methods_from_python(code):
     """
     Extract methods from Python code.
@@ -135,9 +137,8 @@ def format_dataset_for_llm(clean_df, output_data_file):
     final_df = clean_df.drop(columns=["Method Code"])
     final_df = final_df.rename(columns={"Method Code No Comments": "cleaned_method"})
 
-    if_statement_pattern = r"if\s+.*"
-    final_df = final_df.loc[final_df['cleaned_method'].str.contains(if_statement_pattern, regex=True)].copy()
-    final_df['target_block'] = final_df['cleaned_method'].str.extract(f'({if_statement_pattern})')
+    final_df = final_df.loc[final_df['cleaned_method'].str.contains(IF_STATEMENT_PATTERN, regex=True)].copy()
+    final_df['target_block'] = final_df['cleaned_method'].str.extract(f'({IF_STATEMENT_PATTERN})')
 
     final_df['tokens_in_method'] = final_df['cleaned_method'].apply(lambda code: len([t[1] for t in lexer.get_tokens(code)]))
 
