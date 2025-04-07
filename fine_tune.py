@@ -42,7 +42,7 @@ def tokenization(examples, tokenizer):
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 
-def run(dataset, num_train_epochs, save_path):
+def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path):
     """Pipeline for loading pre-trained Code-T5 model and tokenizer, modifying dataset, and fine-tuning"""
     
     print("Loading model and tokenizer")
@@ -96,9 +96,12 @@ def run(dataset, num_train_epochs, save_path):
     trainer.train()
     print("Training complete!")
 
-    if save_path:
+    if save_model_path:
       model.save_pretrained(save_path)
       tokenizer.save_pretrained(save_path)
+
+    if save_tokenized_dataset_path:
+      tokenized_dataset.save_to_disk(save_tokenized_dataset_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
@@ -106,7 +109,8 @@ if __name__ == '__main__':
     parser.add_argument("--validation_file", type = str, help = "File containing Python functions for validation")
     parser.add_argument("--test_file", type = str, help = "File containing Python functions for testing")
     parser.add_argument("--num_train_epochs", type = int, default = 3, help = "Number of training epochs")
-    parser.add_argument("--save_path", type = str, default = './codet5-finetuned-if-condition-final', help = "Path to save best model and tokenizer. If None, it won't be saved")
+    parser.add_argument("--save_model_path", type = str, default = './codet5-finetuned-if-condition-final', help = "Path to save best model and tokenizer. If None, it won't be saved")
+    parser.add_argument("--save_tokenized_ds_path", type = str, default = 'tokenized_dataset', help = 'Directory to save tokenized dataset')
 
     args = parser.parse_args()
 
@@ -118,4 +122,4 @@ if __name__ == '__main__':
     dataset = load_dataset("csv", data_files = {"train": args.train_file, "validation": args.validation_file, "test": args.test_file})
 
     print(dataset)
-    run(dataset, args.num_train_epochs, args.save_path)
+    run(dataset, args.num_train_epochs, args.save_model_path, args.save_tokenized_ds_path)
