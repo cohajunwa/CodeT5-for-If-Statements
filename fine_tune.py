@@ -21,9 +21,9 @@ def flatten(example):
   return example
 
 def mask(example):
-   masked_method = re.sub(if_statement_pattern, "<IF-STMT>:",
+  masked_method = re.sub(if_statement_pattern, "<IF-STMT>:",
                          example['cleaned_method'], 1)
-   example['masked_method'] = masked_method
+  example['masked_method'] = masked_method
 
   return example
 
@@ -38,7 +38,7 @@ def tokenization(examples, tokenizer):
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 
-def run(dataset, num_train_epochs):
+def run(dataset, num_train_epochs, save_path):
     """Pipeline for loading pre-trained Code-T5 model and tokenizer, modifying dataset, and fine-tuning"""
     
     print("Loading model and tokenizer")
@@ -66,7 +66,7 @@ def run(dataset, num_train_epochs):
     training_args = TrainingArguments(
             output_dir = "./codet5-finetuned-if-condition",
             eval_strategy = "epoch",
-            save_strategy = "epoch", # saving checkpoint after each epoch
+            save_strategy = "no",
             logging_dir = "./logs",
             learning_rate = 5e-5,
             per_device_train_batch_size = 2,
@@ -92,12 +92,18 @@ def run(dataset, num_train_epochs):
     trainer.train()
     print("Training complete!")
 
+    if save_path:
+      model.save_pretrained(save_path)
+      tokenizer.save_pretrained(save_path)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_file", type = str, help = "File containing Python functions for training")
     parser.add_argument("--validation_file", type = str, help = "File containing Python functions for validation")
     parser.add_argument("--test_file", type = str, help = "File containing Python functions for testing")
     parser.add_argument("--num_train_epochs", type = int, default = 3, help = "Number of training epochs")
+    parser.add_argument("--save_path", type = str, default = './codet5-finetuned-if-condition-final', help = "Path to save best model and tokenizer. If None, it won't be saved")
+
     args = parser.parse_args()
 
     if not os.path.isfile(args.train_file) or not os.path.isfile(args.validation_file) or not os.path.isfile(args.test_file):
@@ -108,4 +114,4 @@ if __name__ == '__main__':
     dataset = load_dataset("csv", data_files = {"train": args.train_file, "validation": args.validation_file, "test": args.test_file})
 
     print(dataset)
-    run(dataset, args.num_train_epochs)
+    run(dataset, args.num_train_epochs, args.save_path)
