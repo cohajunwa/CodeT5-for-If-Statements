@@ -4,7 +4,7 @@ from transformers import TrainingArguments, Trainer
 from transformers import EarlyStoppingCallback
 from datasets import DatasetDict
 from datasets import Dataset
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 
 import argparse
 import pandas as pd
@@ -62,10 +62,14 @@ if __name__ == '__main__':
     parser.add_argument("--output_csv_file", type = str, default = "testset-results.csv", help = "Filename for saving results")
     args = parser.parse_args()
 
+    print("Loading model, tokenizer, and tokenized_dataset")
     model = T5ForConditionalGeneration.from_pretrained(args.load_model_path)
     tokenizer = RobertaTokenizer.from_pretrained(args.load_model_path)
     tokenized_dataset = load_from_disk(args.load_tokenized_ds_path)
 
+    print("Computing metrics")
     testset_results_df = get_results(model, tokenizer, tokenized_dataset)
+
+    print(f"Saving results in {args.output_csv_file}")
     testset_results_df.to_csv(args.output_csv_file)
     

@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import sys
+import torch
 
 from transformers import T5ForConditionalGeneration, AutoModelForSeq2SeqLM
 from transformers import RobertaTokenizer
@@ -12,6 +13,8 @@ from datasets import Dataset
 from datasets import load_dataset
 
 IF_STATEMENT_PATTERN = r"if\s+.*?:"
+
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def flatten(example):
   """Flatten cleaned Python function and insert tab special character"""
@@ -25,7 +28,7 @@ def flatten(example):
 def mask(example):
   """Apply if-statement mask to cleaned Python function"""
 
-  masked_method = re.sub(if_statement_pattern, "<IF-STMT>:",
+  masked_method = re.sub(IF_STATEMENT_PATTERN, "<IF-STMT>:",
                          example['cleaned_method'], 1)
   example['masked_method'] = masked_method
 
@@ -57,6 +60,8 @@ def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path)
 
     model.resize_token_embeddings(len(tokenizer))
 
+    model = model.to(device)
+
 
     print("Modifying dataset by flattening methods and masking if conditions")    
     dataset = dataset.map(flatten).map(mask)
@@ -70,7 +75,7 @@ def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path)
     training_args = TrainingArguments(
             output_dir = "./codet5-finetuned-if-condition",
             eval_strategy = "epoch",
-            save_strategy = "no",
+            save_strategy = "epoch",
             logging_dir = "./logs",
             learning_rate = 5e-5,
             per_device_train_batch_size = 2,
@@ -92,15 +97,17 @@ def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path)
             tokenizer = tokenizer,
             callbacks = [EarlyStoppingCallback(early_stopping_patience=2)]
     )
-
+    print("Trainer is using device:", trainer.args.device)
     trainer.train()
     print("Training complete!")
 
     if save_model_path:
-      model.save_pretrained(save_path)
-      tokenizer.save_pretrained(save_path)
+      print(f"Saving model and tokenizer to {save_model_path}")
+      model.save_pretrained(save_model_path)
+      tokenizer.save_pretrained(save_model_path)
 
     if save_tokenized_dataset_path:
+      print(f"Saving tokenized dataset to {save_tokenized_dataset_path}")
       tokenized_dataset.save_to_disk(save_tokenized_dataset_path)
 
 if __name__ == '__main__':
