@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 
-from evaluator.calc_code_bleu import calc_code_bleu
+from evaluator import calc_code_bleu
 from transformers import T5ForConditionalGeneration, AutoModelForSeq2SeqLM
 from transformers import RobertaTokenizer
 from transformers import TrainingArguments, Trainer
@@ -42,11 +42,17 @@ def get_results(model, tokenizer, tokenized_dataset):
 
     for example in tokenized_dataset['test']:
         masked_method = example['masked_method']
+        
         expected_if_condition = example['target_block']
+        expected_method = example['cleaned_method']
+
         predicted_if_condition = make_prediction(model, tokenizer, example)
+        predicted_method = masked_method.replace('<IF-STMT>:', predicted_if_condition, 1)
+        
         exact_match = get_exact_match(expected_if_condition, predicted_if_condition)
-        bleu_4_score = get_bleu_4_score(expected_if_condition, predicted_if_condition)
-        code_bleu_score = get_code_bleu_score(expected_if_condition, predicted_if_condition) * 100
+        bleu_4_score = get_bleu_4_score(expected_method, predicted_method)
+        code_bleu_score = get_code_bleu_score(expected_method, predicted_method) * 100
+
 
         testset_results.append(
             {
