@@ -5,6 +5,7 @@ from transformers import EarlyStoppingCallback
 from datasets import DatasetDict
 from datasets import Dataset
 from datasets import load_dataset, load_from_disk
+from evaluator import calc_code_bleu
 
 import argparse
 import pandas as pd
@@ -28,6 +29,11 @@ def get_bleu_4_score(expected_code, predicted_code):
     """Returns BLEU-4 score for predicted code"""
 
     return sacrebleu.corpus_bleu([predicted_code], [[expected_code]]).score
+
+def get_code_bleu_score(expected_code, predicted_code):
+    """Returns CodeBLEU score for predicted code"""
+
+    return calc_code_bleu.code_bleu([predicted_code], [[expected_code]], 'python')
 
 def get_results(model, tokenizer, tokenized_dataset):
     testset_results = []

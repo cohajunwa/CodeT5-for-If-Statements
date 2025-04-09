@@ -24,7 +24,7 @@ def code_bleu(
     Args:
         hypothesis: sequence of hypothesis strings
         pre_references: sequence consisting of references for the hypothesis
-        lang (str): programming language
+        lang (str): programming language (either 'python', 'c_sharp', or 'java')
         params (Tuple[float, float, float, float]): alpha, beta, gamma, theta parameter values 
     Returns:
         Tuple of score values (Tuple[float, float, float, float]): (ngram_match_score, weighted_ngram_match_score, syntax_match_score, dataflow_match_score, code_bleu_score)
@@ -69,7 +69,7 @@ def code_bleu(
                     + gamma*syntax_match_score\
                     + theta*dataflow_match_score
 
-    return ngram_match_score, weighted_ngram_match_score, syntax_match_score, dataflow_match_score, code_bleu_score
+    return code_bleu_score
 
 
 
