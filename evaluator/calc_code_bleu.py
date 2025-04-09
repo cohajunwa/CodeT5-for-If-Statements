@@ -4,16 +4,16 @@
 
 # Modified to meet project requirements
 # -*- coding:utf-8 -*-
-import bleu
-import weighted_ngram_match
-import syntax_match
-import dataflow_match
+from . import bleu
+from . import weighted_ngram_match
+from . import syntax_match
+from . import dataflow_match
 
-from typing import Sequence, Tuple,
+from typing import Sequence, Tuple
 
 
 def code_bleu(
-    hypotheses: Sequence[str],
+    hypothesis: Sequence[str],
     pre_references: Sequence[Sequence[str]],
     lang: str,
     params: Tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
@@ -29,9 +29,10 @@ def code_bleu(
     Returns:
         Tuple of score values (Tuple[float, float, float, float]): (ngram_match_score, weighted_ngram_match_score, syntax_match_score, dataflow_match_score, code_bleu_score)
     """
+    alpha, beta, gamma, theta = params
 
     for i in range(len(pre_references)):
-        assert len(hypotheses) == len(pre_references[i])
+        assert len(hypothesis) == len(pre_references[i])
 
     references = []
     for i in range(len(hypothesis)):
@@ -48,7 +49,7 @@ def code_bleu(
     ngram_match_score = bleu.corpus_bleu(tokenized_refs,tokenized_hyps)
 
     # calculate weighted ngram match
-    keywords = [x.strip() for x in open('keywords/'+lang+'.txt', 'r', encoding='utf-8').readlines()]
+    keywords = [x.strip() for x in open('evaluator/keywords/'+lang+'.txt', 'r', encoding='utf-8').readlines()]
     def make_weights(reference_tokens, key_word_list):
         return {token:1 if token in key_word_list else 0.2 \
                 for token in reference_tokens}

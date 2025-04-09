@@ -32,7 +32,6 @@ def get_bleu_4_score(expected_code, predicted_code):
 
 def get_code_bleu_score(expected_code, predicted_code):
     """Returns CodeBLEU score for predicted code"""
-
     return calc_code_bleu.code_bleu([predicted_code], [[expected_code]], 'python')
 
 def get_results(model, tokenizer, tokenized_dataset):
@@ -44,7 +43,7 @@ def get_results(model, tokenizer, tokenized_dataset):
         predicted_if_condition = make_prediction(model, tokenizer, example)
         exact_match = get_exact_match(expected_if_condition, predicted_if_condition)
         bleu_4_score = get_bleu_4_score(expected_if_condition, predicted_if_condition)
-        code_bleu_score = 0
+        code_bleu_score = get_code_bleu_score(expected_if_condition, predicted_if_condition) * 100
 
         testset_results.append(
             {
