@@ -4,6 +4,8 @@ import csv
 import os
 import pandas as pd
 import re
+import sys
+import warnings
 
 from pydriller import Repository
 from pygments.lexers.python import PythonLexer
@@ -11,6 +13,7 @@ from pygments.lexers import get_lexer_by_name
 from pygments.token import Token
 
 IF_STATEMENT_PATTERN = r"if\s+.*?:"
+warnings.filterwarnings("ignore", category = SyntaxWarning) # Prevent SyntaxWarnings from appearing during parsing
 
 def extract_methods_from_python(code):
     """
@@ -49,16 +52,20 @@ def extract_methods_to_dataframe_from_master(repo_paths):
     extracted_methods = []
 
     for repo_path in repo_paths:
-      print(f"Processing repository: {repo_path}")
-      for commit in Repository(repo_path).traverse_commits():
-          #We only look into the modified files. In other words, we are looking into the history of the software system by traversing each commit.
-          #Various Generative AI methods for SD have been trained on data collected in this way; for example bug fixing.
-          for modified_file in commit.modified_files:
-              if modified_file.filename.endswith(".py") and modified_file.source_code:
-                  methods = extract_methods_from_python(modified_file.source_code)
+        print(f"Processing repository: {repo_path}")
+        try:
+            for commit in Repository(repo_path).traverse_commits():
+                #We only look into the modified files. In other words, we are looking into the history of the software system by traversing each commit.
+                #Various Generative AI methods for SD have been trained on data collected in this way; for example bug fixing.
+                for modified_file in commit.modified_files:
+                    if modified_file.filename.endswith(".py") and modified_file.source_code:
+                        methods = extract_methods_from_python(modified_file.source_code)
 
-                  for method_code in methods:
-                      extracted_methods.append({"Method Code": method_code})
+                        for method_code in methods:
+                            extracted_methods.append({"Method Code": method_code})
+        except Exception as e:
+            print(f"Skipping {repo_path} due to issues that occurred during parsing") 
+            continue # Skipping problematic repos
 
     df = pd.DataFrame(extracted_methods)
     return df
@@ -107,7 +114,7 @@ def remove_outliers(data, lower_percentile=5, upper_percentile=95):
     upper_bound = method_lengths.quantile(upper_percentile / 100)
     return data[(method_lengths >= lower_bound) & (method_lengths <= upper_bound)]
 
-def create_raw_dataframe_from_repos(repo_list_file, save = True):
+def create_raw_dataframe_from_repos(repo_list_file, save):
     repo_list = []
     with open(repo_list_file) as file:
         for line in file:
@@ -120,7 +127,7 @@ def create_raw_dataframe_from_repos(repo_list_file, save = True):
         raw_df.to_csv("../extracted_methods.csv")
     return raw_df
 
-def clean_methods_dataframe(raw_df, save = True):
+def clean_methods_dataframe(raw_df, save):
     clean_df = remove_comments_from_dataframe(raw_df, "Method Code", "Python")
     clean_df = remove_duplicates(clean_df)
     clean_df = filter_ascii_methods(clean_df)
@@ -143,16 +150,16 @@ def format_dataset_for_llm(clean_df, output_data_file):
     final_df['tokens_in_method'] = final_df['cleaned_method'].apply(lambda code: len([t[1] for t in lexer.get_tokens(code)]))
 
     print(f"Saving final dataframe to {output_data_file}")
-    final_df.to_csv(f"../{output_data_file}.csv")
+    final_df.to_csv(f"../{output_data_file}")
 
     return final_df
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--git_repo_file", type = str, default = 'repo_list.txt', help = 'File containing list of Git repos to generate dataset, each separated by newline')
-    parser.add_argument("--save_intermediate_files", type = bool, default = True, help = 'Determine whether to save intermediate dataframes (original raw dataframe from extracted methods and preprocessed dataframe with cleaned methods)')
-    parser.add_argument("--output_data_file", type = str, default = 'created_ft_train.csv', help = 'Prepared dataset for fine-tuning CodeT5 model (csv file)')
+    parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--git_repo_file", type = str, default = '../repo_list.txt', help = 'File containing list of Git repos to generate dataset, each separated by newline')
+    parser.add_argument("--save_intermediate_files", type = bool, default = False, help = 'Determine whether to save intermediate dataframes (original raw dataframe from extracted methods and preprocessed dataframe with cleaned methods)')
+    parser.add_argument("--output_data_file", type = str, default = 'ft_train.csv', help = 'Prepared dataset for fine-tuning CodeT5 model (csv file)')
     args = parser.parse_args()
 
     # Ensuring Git repo file exists
@@ -171,7 +178,7 @@ if __name__ == '__main__':
 
     print("Cleaning methods in raw dataframe")
     clean_df = clean_methods_dataframe(raw_df, args.save_intermediate_files)
-    print(f"Number of Python function after preprocessing: {len(clean_df)}")
+    print(f"Number of Python functions after preprocessing: {len(clean_df)}")
 
     print("Preparing dataframe for CodeT5 models with columns 'cleaned_method', 'target_block', and 'tokens_in_method")
     final_df = format_dataset_for_llm(clean_df, args.output_data_file)
