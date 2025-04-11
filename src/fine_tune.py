@@ -16,6 +16,8 @@ IF_STATEMENT_PATTERN = r"if\s+.*?:"
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
+os.environ["WANDB_DIR"] = "../wandb_logs" # Directory for saving wandb logs
+
 def flatten(example):
   """Flatten cleaned Python function and insert tab special character"""
 
@@ -73,7 +75,7 @@ def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path)
 
     print("Training CodeT5 model")
     training_args = TrainingArguments(
-            output_dir = "./codet5-finetuned-if-condition-checkpoints",
+            output_dir = "../codet5-finetuned-if-condition-checkpoints",
             eval_strategy = "epoch",
             save_strategy = "epoch",
             logging_dir = "./logs",
@@ -113,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument("--train_file", type = str, help = "File containing Python functions for training")
     parser.add_argument("--validation_file", type = str, help = "File containing Python functions for validation")
     parser.add_argument("--test_file", type = str, help = "File containing Python functions for testing")
-    parser.add_argument("--num_train_epochs", type = int, default = 3, help = "Number of training epochs")
+    parser.add_argument("--num_train_epochs", type = int, default = 7, help = "Number of training epochs")
     parser.add_argument("--save_model_path", type = str, default = '../codet5-finetuned-if-condition-final', help = "Path to save best model and tokenizer. If None, it won't be saved")
     parser.add_argument("--save_tokenized_ds_path", type = str, default = '../tokenized_dataset', help = 'Directory to save tokenized dataset')
 
