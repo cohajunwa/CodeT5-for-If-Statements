@@ -47,7 +47,7 @@ def get_results(model, tokenizer, tokenized_dataset):
         expected_method = example['cleaned_method']
 
         predicted_if_condition = make_prediction(model, tokenizer, example)
-        predicted_method = masked_method.replace('<IF-STMT>:', predicted_if_condition, 1)
+        predicted_method = predicted_method = masked_method.replace('<IF-STMT>:', predicted_if_condition, 1)
         
         exact_match = get_exact_match(expected_if_condition, predicted_if_condition)
         bleu_4_score = get_bleu_4_score(expected_method, predicted_method)

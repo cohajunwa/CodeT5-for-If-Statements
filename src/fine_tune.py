@@ -11,6 +11,7 @@ from transformers import EarlyStoppingCallback
 from datasets import DatasetDict
 from datasets import Dataset
 from datasets import load_dataset
+from pygments.lexers.python import PythonLexer
 
 IF_STATEMENT_PATTERN = r"if\s+.*?:"
 
@@ -21,17 +22,25 @@ os.environ["WANDB_DIR"] = "../wandb_logs" # Directory for saving wandb logs
 def flatten(example):
   """Flatten cleaned Python function and insert tab special character"""
 
-  method = example['cleaned_method']
+  cleaned_method = example['cleaned_method']
+  masked_method = example['masked_method']
 
-  flattened_method = method.replace('    ', '<TAB>').replace('\n', '')
-  example['cleaned_method'] = flattened_method
+  example['cleaned_method'] = cleaned_method.replace('    ', '<TAB>').replace('\n', '')
+  example['masked_method'] = masked_method.replace('    ', '<TAB>').replace('\n', '')
+
   return example
 
 def mask(example):
   """Apply if-statement mask to cleaned Python function"""
 
-  masked_method = re.sub(IF_STATEMENT_PATTERN, "<IF-STMT>:",
-                         example['cleaned_method'], 1)
+  lexer = PythonLexer()
+  lexerized_clean_method = [t[1] for t in lexer.get_tokens(example['cleaned_method']) if t[1] != ' ']
+  lexerized_target = [t[1] for t in lexer.get_tokens(example['target_block']) if t[1] != ' '] 
+
+  reconstruct_clean_method = ' '.join(lexerized_clean_method)
+  reconstruct_target = ' '.join(lexerized_target).strip()
+
+  masked_method = reconstruct_clean_method.replace(reconstruct_target, '<IF-STMT>:')
   example['masked_method'] = masked_method
 
   return example
@@ -66,7 +75,7 @@ def run(dataset, num_train_epochs, save_model_path, save_tokenized_dataset_path)
 
 
     print("Modifying dataset by flattening methods and masking if conditions")    
-    dataset = dataset.map(flatten).map(mask)
+    dataset = dataset.map(mask).map(flatten)
     print(dataset)
 
     print("Tokenizing dataset")
